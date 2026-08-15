@@ -44,41 +44,21 @@ public sealed class ReferencePlayerController : MonoBehaviour
     [SerializeField]
     private float startSwipeThreshold = 1f;
 
-    // =========================================================
-    // REFERENCES
-    // =========================================================
-
     private Transform origin;
 
-    // =========================================================
-    // MOVEMENT STATE
-    // =========================================================
-
     private float rotation;
-
     private bool pointerHeld;
-
     private float lastPointerX;
-
     private float targetLocalX;
-
     private bool gameStarted;
-
     private bool finished;
-
-    // =========================================================
-    // AWAKE
-    // =========================================================
 
     private void Awake()
     {
-        origin =
-            transform.parent;
+        origin = transform.parent;
 
         animator =
-            GetComponentInChildren<Animator>(
-                true
-            );
+            GetComponentInChildren<Animator>(true);
 
         if (origin == null)
         {
@@ -114,10 +94,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // START
-    // =========================================================
-
     private void Start()
     {
         if (pathway == null)
@@ -129,7 +105,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
             );
 
             enabled = false;
-
             return;
         }
 
@@ -140,28 +115,12 @@ public sealed class ReferencePlayerController : MonoBehaviour
 
         SetMovingAnimation(false);
 
-        // -----------------------------------------------------
-        // STATUS
-        // -----------------------------------------------------
-
         if (playerStatus != null)
-        {
             playerStatus.Hide();
-        }
-
-        // -----------------------------------------------------
-        // TUTORIAL
-        // -----------------------------------------------------
 
         if (swipeTutorial != null)
-        {
             swipeTutorial.Show();
-        }
     }
-
-    // =========================================================
-    // UPDATE
-    // =========================================================
 
     private void Update()
     {
@@ -170,10 +129,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
 
         HandlePointer();
     }
-
-    // =========================================================
-    // FIXED UPDATE
-    // =========================================================
 
     private void FixedUpdate()
     {
@@ -186,13 +141,8 @@ public sealed class ReferencePlayerController : MonoBehaviour
         }
 
         UpdateRotation();
-
         MoveForward();
     }
-
-    // =========================================================
-    // POINTER
-    // =========================================================
 
     private void HandlePointer()
     {
@@ -202,19 +152,12 @@ public sealed class ReferencePlayerController : MonoBehaviour
         if (Touchscreen.current != null)
         {
             HandleTouch();
-
             return;
         }
 
         if (Mouse.current != null)
-        {
             HandleMouse();
-        }
     }
-
-    // =========================================================
-    // TOUCH
-    // =========================================================
 
     private void HandleTouch()
     {
@@ -239,8 +182,7 @@ public sealed class ReferencePlayerController : MonoBehaviour
                 touch.position.ReadValue().x;
 
             float delta =
-                currentX -
-                lastPointerX;
+                currentX - lastPointerX;
 
             TryStartGame(delta);
 
@@ -250,19 +192,12 @@ public sealed class ReferencePlayerController : MonoBehaviour
                 MoveSide(delta);
             }
 
-            lastPointerX =
-                currentX;
+            lastPointerX = currentX;
         }
 
         if (touch.press.wasReleasedThisFrame)
-        {
             pointerHeld = false;
-        }
     }
-
-    // =========================================================
-    // MOUSE
-    // =========================================================
 
     private void HandleMouse()
     {
@@ -285,8 +220,7 @@ public sealed class ReferencePlayerController : MonoBehaviour
                 Mouse.current.position.ReadValue().x;
 
             float delta =
-                currentX -
-                lastPointerX;
+                currentX - lastPointerX;
 
             TryStartGame(delta);
 
@@ -296,8 +230,7 @@ public sealed class ReferencePlayerController : MonoBehaviour
                 MoveSide(delta);
             }
 
-            lastPointerX =
-                currentX;
+            lastPointerX = currentX;
         }
 
         if (Mouse.current.leftButton
@@ -306,10 +239,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
             pointerHeld = false;
         }
     }
-
-    // =========================================================
-    // START GAME
-    // =========================================================
 
     private void TryStartGame(float delta)
     {
@@ -329,18 +258,8 @@ public sealed class ReferencePlayerController : MonoBehaviour
 
         SetMovingAnimation(true);
 
-        // -----------------------------------------------------
-        // GAME MANAGER
-        // -----------------------------------------------------
-
         if (GameManager.Instance != null)
-        {
             GameManager.Instance.StartGame();
-        }
-
-        // -----------------------------------------------------
-        // TUTORIAL
-        // -----------------------------------------------------
 
         if (swipeTutorial != null &&
             swipeTutorial.IsVisible())
@@ -355,24 +274,16 @@ public sealed class ReferencePlayerController : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // SHOW STATUS
-    // =========================================================
-
     private void ShowStatusAfterTutorial()
     {
-        if (finished)
+        if (finished ||
+            playerStatus == null)
+        {
             return;
-
-        if (playerStatus == null)
-            return;
+        }
 
         playerStatus.Show();
     }
-
-    // =========================================================
-    // SIDE MOVEMENT
-    // =========================================================
 
     private void MoveSide(float delta)
     {
@@ -380,8 +291,7 @@ public sealed class ReferencePlayerController : MonoBehaviour
             return;
 
         targetLocalX +=
-            delta *
-            sensitivity;
+            delta * sensitivity;
 
         float halfWidth =
             trackWidth * 0.5f;
@@ -412,10 +322,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
             );
     }
 
-    // =========================================================
-    // ROTATION
-    // =========================================================
-
     private void UpdateRotation()
     {
         if (finished ||
@@ -442,8 +348,7 @@ public sealed class ReferencePlayerController : MonoBehaviour
 
         if (Mathf.Abs(delta) <= maxStep)
         {
-            rotation =
-                targetRotation;
+            rotation = targetRotation;
         }
         else
         {
@@ -458,10 +363,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
                 Vector3.up
             );
     }
-
-    // =========================================================
-    // FORWARD
-    // =========================================================
 
     private void MoveForward()
     {
@@ -479,19 +380,13 @@ public sealed class ReferencePlayerController : MonoBehaviour
         );
     }
 
-    // =========================================================
-    // FINISH
-    // =========================================================
-
     public void StopAtFinish()
     {
         if (finished)
             return;
 
         finished = true;
-
         gameStarted = false;
-
         pointerHeld = false;
 
         targetLocalX =
@@ -500,12 +395,22 @@ public sealed class ReferencePlayerController : MonoBehaviour
         SetMovingAnimation(false);
     }
 
-    // =========================================================
-    // ANIMATION
-    // =========================================================
+    public void Lose()
+    {
+        if (finished)
+            return;
 
-    private void SetMovingAnimation(
-        bool moving)
+        finished = true;
+        gameStarted = false;
+        pointerHeld = false;
+
+        targetLocalX =
+            transform.localPosition.x;
+
+        SetMovingAnimation(false);
+    }
+
+    private void SetMovingAnimation(bool moving)
     {
         if (animator == null)
             return;
@@ -515,10 +420,6 @@ public sealed class ReferencePlayerController : MonoBehaviour
             moving
         );
     }
-
-    // =========================================================
-    // RESET
-    // =========================================================
 
     public void ResetPlayer()
     {
@@ -536,22 +437,14 @@ public sealed class ReferencePlayerController : MonoBehaviour
         targetLocalX = 0f;
 
         pointerHeld = false;
-
         gameStarted = false;
-
         finished = false;
 
         SetMovingAnimation(false);
 
         if (pathway != null)
-        {
             pathway.ResetPath();
-        }
     }
-
-    // =========================================================
-    // STATE
-    // =========================================================
 
     public bool IsGameStarted
     {

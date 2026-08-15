@@ -6,34 +6,34 @@ using UnityEngine.UI;
 
 public sealed class ReferencePlayerStatus : MonoBehaviour
 {
-    // =========================================================
-    // STATUS
-    // =========================================================
-
     [Header("Status")]
     [SerializeField] private float initialStatus = 25f;
     [SerializeField] private float maxStatus = 100f;
 
-    // =========================================================
-    // UI
-    // =========================================================
+    [Header("References")]
+    [SerializeField] private ReferencePlayerController playerController;
 
     [Header("UI")]
     [SerializeField] private GameObject statusRoot;
     [SerializeField] private Slider statusSlider;
     [SerializeField] private TMP_Text statusText;
 
-    // =========================================================
-    // POPUP
-    // =========================================================
+    [Header("Level Score")]
+    [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private float scorePunch = 0.15f;
+    [SerializeField] private float scorePunchDuration = 0.2f;
 
     [Header("Status Popup")]
-    [Tooltip("Один popup для положительных и отрицательных изменений.")]
     [SerializeField] private ReferenceStatusPopup statusPopup;
 
-    // =========================================================
-    // ANIMATION
-    // =========================================================
+    [Header("Auto Find")]
+    [SerializeField] private string sliderObjectName = "StatusSlider";
+    [SerializeField] private string textObjectName = "StatusText";
+
+    [Header("Stages")]
+    [SerializeField]
+    private List<ReferenceStatusStage> statusStages =
+        new List<ReferenceStatusStage>();
 
     [Header("Status Animation")]
     [SerializeField] private float fillAnimationDuration = 0.18f;
@@ -42,47 +42,33 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
     [SerializeField] private int punchVibrato = 5;
     [SerializeField] private float punchElasticity = 0.7f;
 
-    // =========================================================
-    // AUTO FIND
-    // =========================================================
-
-    [Header("Auto Find")]
-    [SerializeField] private string sliderObjectName = "StatusSlider";
-    [SerializeField] private string textObjectName = "StatusText";
-
-    // =========================================================
-    // STAGES
-    // =========================================================
-
-    [Header("Stages")]
-    [SerializeField]
-    private List<ReferenceStatusStage> statusStages =
-        new List<ReferenceStatusStage>();
-
-    // =========================================================
-    // INTERNAL
-    // =========================================================
+    [Header("Stage Change Animation")]
+    [SerializeField] private float stageScale = 1.65f;
+    [SerializeField] private float stageScaleUpDuration = 0.12f;
+    [SerializeField] private float stageScaleDownDuration = 0.35f;
 
     private float status;
+    private float levelScore;
 
     private ReferenceStatusStage currentStage;
 
     private bool visible;
 
     private Image sliderFillImage;
-
     private RectTransform sliderRect;
 
     private float displayedSliderValue;
 
-    // =========================================================
-    // AWAKE
-    // =========================================================
-
     private void Awake()
     {
-        AutoFindUI();
+        if (playerController == null)
+        {
+            playerController =
+                GetComponentInParent<
+                    ReferencePlayerController>();
+        }
 
+        AutoFindUI();
         SortStages();
 
         status =
@@ -92,30 +78,27 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
                 maxStatus
             );
 
-        PrepareSlider();
+        levelScore =
+            status;
 
+        if (scoreText != null)
+        {
+            scoreText.gameObject.SetActive(false);
+            scoreText.text =
+                Mathf.RoundToInt(levelScore).ToString();
+        }
+
+        PrepareSlider();
         RefreshStatus(false);
     }
-
-    // =========================================================
-    // START
-    // =========================================================
 
     private void Start()
     {
         Hide();
     }
 
-    // =========================================================
-    // UI FIND
-    // =========================================================
-
     private void AutoFindUI()
     {
-        // -----------------------------------------------------
-        // STATUS ROOT
-        // -----------------------------------------------------
-
         if (statusRoot == null)
         {
             Transform root =
@@ -134,15 +117,8 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             }
 
             if (root != null)
-            {
-                statusRoot =
-                    root.gameObject;
-            }
+                statusRoot = root.gameObject;
         }
-
-        // -----------------------------------------------------
-        // SLIDER
-        // -----------------------------------------------------
 
         if (statusSlider == null)
         {
@@ -165,10 +141,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
                 GetComponentInChildren<Slider>(true);
         }
 
-        // -----------------------------------------------------
-        // STATUS TEXT
-        // -----------------------------------------------------
-
         if (statusText == null)
         {
             Transform textTransform =
@@ -190,25 +162,15 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
                 GetComponentInChildren<TMP_Text>(true);
         }
 
-        // -----------------------------------------------------
-        // POPUP
-        // -----------------------------------------------------
-
         if (statusPopup == null)
         {
             statusPopup =
                 GetComponentInChildren<
-                    ReferenceStatusPopup>(
-                    true
-                );
+                    ReferenceStatusPopup>(true);
         }
 
         SetupSlider();
     }
-
-    // =========================================================
-    // SLIDER SETUP
-    // =========================================================
 
     private void SetupSlider()
     {
@@ -226,14 +188,9 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         if (statusSlider.fillRect != null)
         {
             sliderFillImage =
-                statusSlider.fillRect
-                    .GetComponent<Image>();
+                statusSlider.fillRect.GetComponent<Image>();
         }
     }
-
-    // =========================================================
-    // PREPARE SLIDER
-    // =========================================================
 
     private void PrepareSlider()
     {
@@ -243,9 +200,7 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         float value =
             GetNormalizedStatus();
 
-        statusSlider.SetValueWithoutNotify(
-            value
-        );
+        statusSlider.SetValueWithoutNotify(value);
 
         displayedSliderValue =
             value;
@@ -253,15 +208,10 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         if (sliderRect != null)
         {
             sliderRect.DOKill();
-
             sliderRect.localScale =
                 Vector3.one;
         }
     }
-
-    // =========================================================
-    // FIND CHILD
-    // =========================================================
 
     private Transform FindChildByName(
         Transform root,
@@ -275,27 +225,18 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
 
         Transform[] children =
             root.GetComponentsInChildren<
-                Transform>(
-                    true
-                );
+                Transform>(true);
 
         for (int i = 0;
-             i < children.Length;
-             i++)
+            i < children.Length;
+            i++)
         {
-            if (children[i].name ==
-                objectName)
-            {
+            if (children[i].name == objectName)
                 return children[i];
-            }
         }
 
         return null;
     }
-
-    // =========================================================
-    // ADD STATUS
-    // =========================================================
 
     public void AddStatus(float value)
     {
@@ -305,7 +246,7 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         float oldStatus =
             status;
 
-        status =
+        float newStatus =
             Mathf.Clamp(
                 status + value,
                 0f,
@@ -313,10 +254,18 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             );
 
         float actualChange =
-            status - oldStatus;
+            newStatus - oldStatus;
 
         if (actualChange <= 0f)
             return;
+
+        status =
+            newStatus;
+
+        levelScore =
+            status;
+
+        UpdateScoreText();
 
         RefreshStatus(true);
 
@@ -324,10 +273,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             actualChange
         );
     }
-
-    // =========================================================
-    // REMOVE STATUS
-    // =========================================================
 
     public void RemoveStatus(float value)
     {
@@ -337,86 +282,183 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         float oldStatus =
             status;
 
-        status =
-            Mathf.Clamp(
-                status - value,
+        float newStatus =
+            Mathf.Max(
                 0f,
-                maxStatus
+                status - value
             );
 
         float actualChange =
-            oldStatus - status;
+            oldStatus - newStatus;
 
-        if (actualChange > 0f)
-        {
-            RefreshStatus(true);
-
-            ShowStatusPopup(
-                -actualChange
-            );
-        }
-
-        // -----------------------------------------------------
-        // LOSE
-        // -----------------------------------------------------
-
-        if (status <= 0f &&
-            GameManager.Instance != null)
-        {
-            GameManager.Instance.Lose();
-        }
-    }
-
-    // =========================================================
-    // STATUS POPUP
-    // =========================================================
-
-    private void ShowStatusPopup(
-        float change)
-    {
-        if (!visible)
+        if (actualChange <= 0f)
             return;
 
-        if (statusPopup == null)
-            return;
+        status =
+            newStatus;
 
-        if (Mathf.Approximately(
-                change,
-                0f))
-        {
-            return;
-        }
+        levelScore =
+            status;
 
-        statusPopup.Show(
-            change
+        UpdateScoreText();
+
+        RefreshStatus(true);
+
+        ShowStatusPopup(
+            -actualChange
         );
-    }
 
-    // =========================================================
-    // SET STATUS
-    // =========================================================
+        CheckLoseCondition();
+    }
 
     public void SetStatus(float value)
     {
-        status =
+        float newStatus =
             Mathf.Clamp(
                 value,
                 0f,
                 maxStatus
             );
 
+        float change =
+            newStatus - status;
+
+        status =
+            newStatus;
+
+        levelScore =
+            status;
+
+        UpdateScoreText();
+
+        RefreshStatus(true);
+
+        if (!Mathf.Approximately(change, 0f))
+        {
+            ShowStatusPopup(change);
+        }
+
+        CheckLoseCondition();
+    }
+
+    private void SyncScoreAndStatus()
+    {
+        levelScore =
+            Mathf.Clamp(
+                levelScore,
+                0f,
+                maxStatus
+            );
+
+        status =
+            levelScore;
+
+        UpdateScoreText();
+    }
+
+    private void UpdateScoreText()
+    {
+        if (scoreText == null)
+            return;
+
+        scoreText.text =
+            Mathf.RoundToInt(
+                levelScore
+            ).ToString();
+
+        scoreText.gameObject.SetActive(
+            visible
+        );
+
+        if (!visible)
+            return;
+
+        RectTransform rect =
+            scoreText.rectTransform;
+
+        rect.DOKill();
+
+        rect.localScale =
+            Vector3.one;
+
+        rect.DOPunchScale(
+            Vector3.one * scorePunch,
+            scorePunchDuration,
+            5,
+            0.7f
+        );
+    }
+
+    public float GetLevelScore()
+    {
+        return levelScore;
+    }
+
+    public int GetLevelScoreInt()
+    {
+        return Mathf.RoundToInt(
+            levelScore
+        );
+    }
+
+    public void ResetLevelScore()
+    {
+        levelScore = 0f;
+        status = 0f;
+
+        if (scoreText != null)
+        {
+            scoreText.DOKill();
+            scoreText.rectTransform.DOKill();
+
+            scoreText.text = "0";
+
+            scoreText.rectTransform.localScale =
+                Vector3.one;
+
+            scoreText.gameObject.SetActive(
+                visible
+            );
+        }
+
+        currentStage = null;
+
+        RefreshStatus(false);
+    }
+
+    private void CheckLoseCondition()
+    {
+        if (status > 0f &&
+            levelScore > 0f)
+        {
+            return;
+        }
+
+        status = 0f;
+        levelScore = 0f;
+
+        UpdateScoreText();
         RefreshStatus(false);
 
-        if (status <= 0f &&
-            GameManager.Instance != null)
+        if (GameManager.Instance != null)
         {
             GameManager.Instance.Lose();
         }
     }
 
-    // =========================================================
-    // REFRESH STATUS
-    // =========================================================
+    private void ShowStatusPopup(float change)
+    {
+        if (!visible ||
+            statusPopup == null ||
+            Mathf.Approximately(
+                change,
+                0f))
+        {
+            return;
+        }
+
+        statusPopup.Show(change);
+    }
 
     private void RefreshStatus(
         bool animate)
@@ -424,11 +466,10 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         ReferenceStatusStage stage =
             GetCurrentStage();
 
-        // -----------------------------------------------------
-        // STAGE CHANGED
-        // -----------------------------------------------------
+        bool stageChanged =
+            stage != currentStage;
 
-        if (stage != currentStage)
+        if (stageChanged)
         {
             currentStage =
                 stage;
@@ -441,22 +482,11 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         else
         {
             UpdateText(stage);
-
             UpdateFillColor(stage);
         }
 
-        // -----------------------------------------------------
-        // SLIDER
-        // -----------------------------------------------------
-
-        UpdateSlider(
-            animate
-        );
+        UpdateSlider(animate);
     }
-
-    // =========================================================
-    // GET CURRENT STAGE
-    // =========================================================
 
     private ReferenceStatusStage GetCurrentStage()
     {
@@ -470,8 +500,8 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             null;
 
         for (int i = 0;
-             i < statusStages.Count;
-             i++)
+            i < statusStages.Count;
+            i++)
         {
             ReferenceStatusStage stage =
                 statusStages[i];
@@ -481,8 +511,7 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
 
             if (status >= stage.minStatus)
             {
-                result =
-                    stage;
+                result = stage;
             }
             else
             {
@@ -493,10 +522,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         return result;
     }
 
-    // =========================================================
-    // APPLY STAGE
-    // =========================================================
-
     private void ApplyStage(
         ReferenceStatusStage stage)
     {
@@ -504,15 +529,49 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             return;
 
         UpdateText(stage);
-
         UpdateFillColor(stage);
-
         UpdateAppearance(stage);
+
+        AnimateStageChange();
     }
 
-    // =========================================================
-    // TEXT
-    // =========================================================
+    private void AnimateStageChange()
+    {
+        if (!visible ||
+            statusText == null)
+        {
+            return;
+        }
+
+        RectTransform rect =
+            statusText.rectTransform;
+
+        rect.DOKill();
+
+        rect.localScale =
+            Vector3.one;
+
+        Sequence sequence =
+            DOTween.Sequence();
+
+        sequence.Append(
+            rect.DOScale(
+                Vector3.one * stageScale,
+                stageScaleUpDuration
+            ).SetEase(
+                Ease.OutBack
+            )
+        );
+
+        sequence.Append(
+            rect.DOScale(
+                Vector3.one,
+                stageScaleDownDuration
+            ).SetEase(
+                Ease.OutBounce
+            )
+        );
+    }
 
     private void UpdateText(
         ReferenceStatusStage stage)
@@ -541,10 +600,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         );
     }
 
-    // =========================================================
-    // FILL COLOR
-    // =========================================================
-
     private void UpdateFillColor(
         ReferenceStatusStage stage)
     {
@@ -563,10 +618,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             color;
     }
 
-    // =========================================================
-    // APPEARANCE
-    // =========================================================
-
     private void UpdateAppearance(
         ReferenceStatusStage stage)
     {
@@ -574,8 +625,8 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             return;
 
         for (int i = 0;
-             i < statusStages.Count;
-             i++)
+            i < statusStages.Count;
+            i++)
         {
             ReferenceStatusStage item =
                 statusStages[i];
@@ -592,10 +643,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // SLIDER
-    // =========================================================
-
     private void UpdateSlider(
         bool animate)
     {
@@ -608,10 +655,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         statusSlider.gameObject.SetActive(
             visible
         );
-
-        // -----------------------------------------------------
-        // INSTANT
-        // -----------------------------------------------------
 
         if (!animate)
         {
@@ -627,7 +670,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             if (sliderRect != null)
             {
                 sliderRect.DOKill();
-
                 sliderRect.localScale =
                     Vector3.one;
             }
@@ -635,15 +677,10 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             return;
         }
 
-        // -----------------------------------------------------
-        // VALUE
-        // -----------------------------------------------------
-
         statusSlider.DOKill();
 
         DOTween.To(
             () => displayedSliderValue,
-
             value =>
             {
                 displayedSliderValue =
@@ -656,18 +693,11 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
                     );
                 }
             },
-
             target,
-
             fillAnimationDuration
-        )
-        .SetEase(
+        ).SetEase(
             Ease.OutQuad
         );
-
-        // -----------------------------------------------------
-        // PUNCH
-        // -----------------------------------------------------
 
         if (sliderRect != null)
         {
@@ -685,99 +715,80 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         }
     }
 
-    // =========================================================
-    // SHOW
-    // =========================================================
-
     public void Show()
     {
         visible = true;
 
         if (statusRoot != null)
-        {
             statusRoot.SetActive(true);
-        }
 
         if (statusSlider != null)
-        {
             statusSlider.gameObject.SetActive(true);
-        }
 
         if (statusText != null)
-        {
             statusText.gameObject.SetActive(true);
+
+        if (scoreText != null)
+        {
+            scoreText.gameObject.SetActive(true);
+            scoreText.alpha = 1f;
+
+            UpdateScoreText();
         }
 
         RefreshStatus(false);
     }
 
-    // =========================================================
-    // HIDE
-    // =========================================================
-
     public void Hide()
     {
         visible = false;
 
-        // -----------------------------------------------------
-        // SLIDER ANIMATION
-        // -----------------------------------------------------
-
         if (statusSlider != null)
-        {
             statusSlider.DOKill();
-        }
 
         if (sliderRect != null)
         {
             sliderRect.DOKill();
-
             sliderRect.localScale =
                 Vector3.one;
         }
 
-        // -----------------------------------------------------
-        // POPUP
-        // -----------------------------------------------------
-
-        if (statusPopup != null)
+        if (statusText != null)
         {
-            statusPopup.Hide();
+            statusText.DOKill();
+            statusText.rectTransform.DOKill();
+
+            statusText.rectTransform.localScale =
+                Vector3.one;
         }
 
-        // -----------------------------------------------------
-        // ROOT
-        // -----------------------------------------------------
+        if (scoreText != null)
+        {
+            scoreText.DOKill();
+            scoreText.rectTransform.DOKill();
+
+            scoreText.gameObject.SetActive(false);
+            scoreText.alpha = 1f;
+
+            scoreText.rectTransform.localScale =
+                Vector3.one;
+        }
+
+        if (statusPopup != null)
+            statusPopup.Hide();
 
         if (statusRoot != null)
         {
             statusRoot.SetActive(false);
-
             return;
         }
 
-        // -----------------------------------------------------
-        // SLIDER
-        // -----------------------------------------------------
-
         if (statusSlider != null)
-        {
             statusSlider.gameObject.SetActive(false);
-        }
-
-        // -----------------------------------------------------
-        // TEXT
-        // -----------------------------------------------------
 
         if (statusText != null)
-        {
             statusText.gameObject.SetActive(false);
-        }
     }
-
-    // =========================================================
-    // RESET
-    // =========================================================
 
     public void ResetStatus()
     {
@@ -788,24 +799,19 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
                 maxStatus
             );
 
-        currentStage =
-            null;
+        levelScore =
+            status;
+
+        currentStage = null;
 
         if (statusPopup != null)
-        {
             statusPopup.Hide();
-        }
 
         PrepareSlider();
-
         RefreshStatus(false);
 
         Hide();
     }
-
-    // =========================================================
-    // SORT STAGES
-    // =========================================================
 
     private void SortStages()
     {
@@ -830,10 +836,6 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
             }
         );
     }
-
-    // =========================================================
-    // PUBLIC API
-    // =========================================================
 
     public float GetStatus()
     {
@@ -862,25 +864,27 @@ public sealed class ReferencePlayerStatus : MonoBehaviour
         return visible;
     }
 
-    // =========================================================
-    // DESTROY
-    // =========================================================
-
     private void OnDestroy()
     {
         if (statusSlider != null)
-        {
             statusSlider.DOKill();
-        }
 
         if (sliderRect != null)
-        {
             sliderRect.DOKill();
+
+        if (statusText != null)
+        {
+            statusText.DOKill();
+            statusText.rectTransform.DOKill();
+        }
+
+        if (scoreText != null)
+        {
+            scoreText.DOKill();
+            scoreText.rectTransform.DOKill();
         }
 
         if (statusPopup != null)
-        {
             statusPopup.Hide();
-        }
     }
 }

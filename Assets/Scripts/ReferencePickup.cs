@@ -10,229 +10,107 @@ public class ReferencePickup : MonoBehaviour
         Negative
     }
 
-    // =========================================================
-    // PICKUP
-    // =========================================================
-
     [Header("Pickup")]
-    [SerializeField]
-    private PickupType pickupType = PickupType.Coin;
-
-    [Header("Random Status Value")]
-    [Min(0)]
-    [SerializeField]
-    private int statusMin = 5;
+    [SerializeField] private PickupType pickupType = PickupType.Coin;
 
     [Min(0)]
-    [SerializeField]
-    private int statusMax = 15;
+    [SerializeField] private int statusMin = 5;
 
-    [Tooltip("Если включено, после подбора объект уничтожается.")]
-    [SerializeField]
-    private bool destroyAfterPickup = true;
+    [Min(0)]
+    [SerializeField] private int statusMax = 15;
 
-    // =========================================================
-    // ANIMATION
-    // =========================================================
+    [SerializeField] private bool destroyAfterPickup = true;
 
     [Header("Pickup Animation")]
-    [SerializeField]
-    private float animationDuration = 0.3f;
-
-    [SerializeField]
-    private float scaleMultiplier = 1.35f;
-
-    [SerializeField]
-    private float moveUp = 0.35f;
-
-    // =========================================================
-    // IDLE ANIMATION
-    // =========================================================
+    [SerializeField] private float animationDuration = 0.3f;
+    [SerializeField] private float scaleMultiplier = 1.35f;
+    [SerializeField] private float moveUp = 0.35f;
 
     [Header("Idle Animation")]
-    [SerializeField]
-    private bool rotate = true;
+    [SerializeField] private bool rotate = true;
+    [SerializeField] private float rotationSpeed = 120f;
 
-    [SerializeField]
-    private float rotationSpeed = 120f;
+    [SerializeField] private bool floatAnimation = true;
+    [SerializeField] private float floatHeight = 0.12f;
+    [SerializeField] private float floatDuration = 0.8f;
 
-    [SerializeField]
-    private bool floatAnimation = true;
-
-    [SerializeField]
-    private float floatHeight = 0.12f;
-
-    [SerializeField]
-    private float floatDuration = 0.8f;
-
-    // =========================================================
-    // INTERNAL
-    // =========================================================
-
-    protected ReferencePlayerStatus playerStatus;
-
+    private ReferencePlayerStatus playerStatus;
     protected Collider pickupCollider;
 
     private Vector3 startPosition;
     private Vector3 startScale;
     private Quaternion startRotation;
 
-    private bool collected;
+    private Tween rotateTween;
+    private Tween floatTween;
+    private Sequence collectSequence;
 
-    // =========================================================
-    // AWAKE
-    // =========================================================
+    private bool collected;
 
     protected virtual void Awake()
     {
-        pickupCollider =
-            GetComponent<Collider>();
+        pickupCollider = GetComponent<Collider>();
 
-        pickupCollider.isTrigger = true;
+        if (pickupCollider != null)
+            pickupCollider.isTrigger = true;
 
-        startPosition =
-            transform.localPosition;
+        startPosition = transform.localPosition;
+        startScale = transform.localScale;
+        startRotation = transform.localRotation;
 
-        startScale =
-            transform.localScale;
-
-        startRotation =
-            transform.localRotation;
-
-        statusMin =
-            Mathf.Max(
-                0,
-                statusMin
-            );
-
-        statusMax =
-            Mathf.Max(
-                0,
-                statusMax
-            );
+        statusMin = Mathf.Max(0, statusMin);
+        statusMax = Mathf.Max(0, statusMax);
 
         if (statusMax < statusMin)
-        {
-            statusMax =
-                statusMin;
-        }
-
-        FindPlayerStatus();
+            statusMax = statusMin;
     }
-
-    // =========================================================
-    // START
-    // =========================================================
 
     private void Start()
     {
-        ResetIdleAnimation();
+        StartIdleAnimation();
     }
 
-    // =========================================================
-    // UPDATE
-    // =========================================================
-
-    private void Update()
+    private void StartIdleAnimation()
     {
-        if (collected)
-            return;
+        StopIdleAnimation();
 
-        UpdateIdleAnimation();
-    }
-
-    // =========================================================
-    // IDLE ANIMATION
-    // =========================================================
-
-    private void UpdateIdleAnimation()
-    {
-        if (rotate)
+        if (rotate && rotationSpeed != 0f)
         {
-            float rotation =
-                Time.time *
-                rotationSpeed;
+            float duration =
+                360f / Mathf.Abs(rotationSpeed);
 
-            Quaternion rotationOffset =
-                Quaternion.Euler(
-                    0f,
-                    rotation,
-                    0f
-                );
-
-            transform.localRotation =
-                startRotation *
-                rotationOffset;
+            rotateTween =
+                transform.DOLocalRotate(
+                    new Vector3(0f, 360f, 0f),
+                    duration,
+                    RotateMode.FastBeyond360)
+                .SetEase(Ease.Linear)
+                .SetLoops(-1, LoopType.Restart);
         }
 
-        if (floatAnimation)
+        if (floatAnimation &&
+            floatHeight > 0f &&
+            floatDuration > 0.01f)
         {
-            float frequency =
-                Mathf.PI * 2f /
-                Mathf.Max(
-                    0.01f,
-                    floatDuration * 2f
-                );
-
-            float offset =
-                Mathf.Sin(
-                    Time.time *
-                    frequency
-                ) *
-                floatHeight;
-
-            Vector3 position =
-                startPosition;
-
-            position.y += offset;
-
-            transform.localPosition =
-                position;
+            floatTween =
+                transform.DOLocalMoveY(
+                    startPosition.y + floatHeight,
+                    floatDuration)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo);
         }
     }
 
-    // =========================================================
-    // RESET IDLE
-    // =========================================================
-
-    private void ResetIdleAnimation()
+    private void StopIdleAnimation()
     {
-        transform.localPosition =
-            startPosition;
+        rotateTween?.Kill();
+        floatTween?.Kill();
 
-        transform.localRotation =
-            startRotation;
+        rotateTween = null;
+        floatTween = null;
     }
 
-    // =========================================================
-    // FIND STATUS
-    // =========================================================
-
-    private void FindPlayerStatus()
-    {
-        if (playerStatus != null)
-            return;
-
-        playerStatus =
-            FindFirstObjectByType<
-                ReferencePlayerStatus>();
-
-        if (playerStatus == null)
-        {
-            Debug.LogWarning(
-                "ReferencePickup: " +
-                "ReferencePlayerStatus не найден.",
-                this
-            );
-        }
-    }
-
-    // =========================================================
-    // TRIGGER
-    // =========================================================
-
-    protected virtual void OnTriggerEnter(
-        Collider other)
+    protected virtual void OnTriggerEnter(Collider other)
     {
         if (collected)
             return;
@@ -243,12 +121,7 @@ public class ReferencePickup : MonoBehaviour
         Collect();
     }
 
-    // =========================================================
-    // PLAYER CHECK
-    // =========================================================
-
-    protected bool IsPlayer(
-        Collider other)
+    protected bool IsPlayer(Collider other)
     {
         if (other == null)
             return false;
@@ -257,10 +130,6 @@ public class ReferencePickup : MonoBehaviour
             ReferencePlayerController>() != null;
     }
 
-    // =========================================================
-    // COLLECT
-    // =========================================================
-
     protected virtual void Collect()
     {
         if (collected)
@@ -268,76 +137,57 @@ public class ReferencePickup : MonoBehaviour
 
         collected = true;
 
-        ApplyStatus();
+        StopIdleAnimation();
 
         if (pickupCollider != null)
-        {
             pickupCollider.enabled = false;
-        }
+
+        ApplyStatus();
 
         PlayCollectAnimation();
     }
-
-    // =========================================================
-    // STATUS
-    // =========================================================
 
     protected void ApplyStatus()
     {
         if (playerStatus == null)
         {
-            FindPlayerStatus();
+            playerStatus =
+                FindFirstObjectByType<
+                    ReferencePlayerStatus>();
         }
 
         if (playerStatus == null)
             return;
 
-        int randomValue =
+        int value =
             GetRandomStatusValue();
 
-        switch (pickupType)
+        if (pickupType == PickupType.Coin)
         {
-            case PickupType.Coin:
+            playerStatus.AddStatus(value);
 
-                playerStatus.AddStatus(
-                    randomValue
-                );
+            if (ReferencePlayerAudio.Instance != null)
+            {
+                ReferencePlayerAudio.Instance
+                    .CollectCoins();
+            }
+        }
+        else
+        {
+            playerStatus.RemoveStatus(value);
 
-                if (ReferencePlayerAudio.Instance != null)
-                {
-                    ReferencePlayerAudio.Instance
-                        .CollectCoins();
-                }
-
-                break;
-
-            case PickupType.Negative:
-
-                playerStatus.RemoveStatus(
-                    randomValue
-                );
-
-                if (ReferencePlayerAudio.Instance != null)
-                {
-                    ReferencePlayerAudio.Instance
-                        .LoseCoins();
-                }
-
-                break;
+            if (ReferencePlayerAudio.Instance != null)
+            {
+                ReferencePlayerAudio.Instance
+                    .LoseCoins();
+            }
         }
     }
-
-    // =========================================================
-    // RANDOM VALUE
-    // =========================================================
 
     private int GetRandomStatusValue()
     {
         if (statusMax < statusMin)
-        {
-            statusMax =
-                statusMin;
-        }
+            statusMax = statusMin;
 
         return Random.Range(
             statusMin,
@@ -345,57 +195,41 @@ public class ReferencePickup : MonoBehaviour
         );
     }
 
-    // =========================================================
-    // COLLECT ANIMATION
-    // =========================================================
-
     private void PlayCollectAnimation()
     {
         transform.DOKill();
 
-        Sequence sequence =
-            DOTween.Sequence();
+        collectSequence?.Kill();
 
         Vector3 targetScale =
-            startScale *
-            scaleMultiplier;
+            startScale * scaleMultiplier;
 
         Vector3 targetPosition =
             transform.localPosition +
-            Vector3.up *
-            moveUp;
+            Vector3.up * moveUp;
 
-        sequence.Join(
+        collectSequence =
+            DOTween.Sequence();
+
+        collectSequence.Join(
             transform.DOScale(
                 targetScale,
-                animationDuration * 0.45f
-            )
-            .SetEase(
-                Ease.OutBack
-            )
-        );
+                animationDuration * 0.45f)
+            .SetEase(Ease.OutBack));
 
-        sequence.Join(
+        collectSequence.Join(
             transform.DOLocalMove(
                 targetPosition,
-                animationDuration
-            )
-            .SetEase(
-                Ease.OutQuad
-            )
-        );
+                animationDuration)
+            .SetEase(Ease.OutQuad));
 
-        sequence.Append(
+        collectSequence.Append(
             transform.DOScale(
                 Vector3.zero,
-                animationDuration * 0.55f
-            )
-            .SetEase(
-                Ease.InBack
-            )
-        );
+                animationDuration * 0.55f)
+            .SetEase(Ease.InBack));
 
-        sequence.OnComplete(() =>
+        collectSequence.OnComplete(() =>
         {
             if (destroyAfterPickup)
             {
@@ -408,40 +242,25 @@ public class ReferencePickup : MonoBehaviour
         });
     }
 
-    // =========================================================
-    // SETUP
-    // =========================================================
+    public void SetPlayerStatus(
+        ReferencePlayerStatus status)
+    {
+        playerStatus = status;
+    }
 
     public void SetType(
         PickupType type,
         int minValue,
         int maxValue)
     {
-        pickupType =
-            type;
+        pickupType = type;
 
-        statusMin =
-            Mathf.Max(
-                0,
-                minValue
-            );
-
-        statusMax =
-            Mathf.Max(
-                0,
-                maxValue
-            );
+        statusMin = Mathf.Max(0, minValue);
+        statusMax = Mathf.Max(0, maxValue);
 
         if (statusMax < statusMin)
-        {
-            statusMax =
-                statusMin;
-        }
+            statusMax = statusMin;
     }
-
-    // =========================================================
-    // GETTERS
-    // =========================================================
 
     public PickupType GetPickupType()
     {
@@ -463,12 +282,39 @@ public class ReferencePickup : MonoBehaviour
         return statusMax;
     }
 
-    // =========================================================
-    // DESTROY
-    // =========================================================
+    private void OnEnable()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        collected = false;
+
+        if (pickupCollider != null)
+            pickupCollider.enabled = true;
+
+        transform.localPosition = startPosition;
+        transform.localRotation = startRotation;
+        transform.localScale = startScale;
+
+        StartIdleAnimation();
+    }
+
+    private void OnDisable()
+    {
+        StopIdleAnimation();
+
+        collectSequence?.Kill();
+        collectSequence = null;
+
+        transform.DOKill();
+    }
 
     protected virtual void OnDestroy()
     {
+        StopIdleAnimation();
+
+        collectSequence?.Kill();
+
         transform.DOKill();
     }
 }

@@ -8,7 +8,7 @@ public sealed class ReferenceStatusStage
     public float minStatus;
 
     [Header("Display")]
-    public string statusName = "Бомж";
+    public string statusName = "Бездомный";
 
     public Color statusColor = Color.white;
 

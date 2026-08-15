@@ -5,10 +5,6 @@ public sealed class ReferenceFinish : MonoBehaviour
 {
     private Collider finishCollider;
 
-    // =========================================================
-    // AWAKE
-    // =========================================================
-
     private void Awake()
     {
         finishCollider =
@@ -17,13 +13,15 @@ public sealed class ReferenceFinish : MonoBehaviour
         finishCollider.isTrigger = true;
     }
 
-    // =========================================================
-    // TRIGGER
-    // =========================================================
-
     private void OnTriggerEnter(Collider other)
     {
         if (other == null)
+            return;
+
+        if (GameManager.Instance == null)
+            return;
+
+        if (!GameManager.Instance.IsPlaying())
             return;
 
         ReferencePlayerController player =
@@ -33,24 +31,9 @@ public sealed class ReferenceFinish : MonoBehaviour
         if (player == null)
             return;
 
-        // -----------------------------------------------------
-        // STOP PLAYER
-        // -----------------------------------------------------
-
         player.StopAtFinish();
 
-        // -----------------------------------------------------
-        // WIN
-        // -----------------------------------------------------
-
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.Win();
-        }
-
-        // -----------------------------------------------------
-        // DISABLE FINISH
-        // -----------------------------------------------------
+        GameManager.Instance.Win();
 
         if (finishCollider != null)
         {
